@@ -42,7 +42,7 @@ export default function AdminDashboard() {
 
   const fetchProjects = async () => {
     try {
-      const response = await axios.get('/api/projects/all');
+      const response = await axios.get('/projects/all');
       setProjects(response.data);
       calculateStats(response.data);
     } catch (error) {
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
 
   const handleProjectClick = async (projectId) => {
     try {
-      const response = await axios.get(`/api/projects/details/${projectId}`);
+      const response = await axios.get(`/projects/details/${projectId}`);
       setSelectedProject(response.data.project);
       setReviewHistory(response.data.feedback || []);
       setFeedback('');
@@ -116,7 +116,7 @@ export default function AdminDashboard() {
     if (!selectedProject) return;
 
     try {
-      await axios.post(`/api/projects/review/${selectedProject._id}`, {
+      await axios.post(`/projects/review/${selectedProject._id}`, {
         feedback,
         status,
         rating
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
       setFeedback('');
       setRating(3);
       setSelectedProject(null);
-      fetchProjects(); // Refresh the projects list
+      fetchProjects(); 
     } catch (error) {
       console.error(error);
       toast.error('Error submitting review');
@@ -140,7 +140,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      await axios.post('/api/projects/bulk-action', {
+      await axios.post('/projects/bulk-action', {
         action,
         projectIds: selectedIds
       });
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
               </div>
               <div className="project-actions">
                 <a
-                  href={`/api/projects/download/${selectedProject._id}`}
+                  href={`/projects/download/${selectedProject._id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="download-btn"

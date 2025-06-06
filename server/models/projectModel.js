@@ -28,7 +28,7 @@ const projectSchema = new mongoose.Schema(
     },
     status: { 
       type: String, 
-      enum: ['pending', 'reviewed', 'updated'], 
+      enum: ['pending', 'approved', 'rejected'], 
       default: 'pending' 
     },
     version: { 
@@ -67,6 +67,23 @@ const projectSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
+    },
+    files: [{
+      filename: String,
+      originalName: String,
+      path: String,
+      uploadedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }],
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now
     }
   },
   { 
@@ -117,5 +134,11 @@ projectSchema.methods.addVersion = async function(newData) {
 projectSchema.index({ title: 'text', description: 'text' });
 projectSchema.index({ owner: 1, createdAt: -1 });
 projectSchema.index({ status: 1, createdAt: -1 });
+
+// Update the updatedAt timestamp before saving
+projectSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
 
 module.exports = mongoose.model('Project', projectSchema);

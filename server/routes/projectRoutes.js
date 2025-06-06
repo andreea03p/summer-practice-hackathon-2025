@@ -5,6 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Project = require('../models/projectModel');
+const Feedback = require('../models/feedbackModel');
 // Import the “protect” function from authMiddleware
 const { protect } = require('../middleware/authMiddleware');
 
@@ -52,6 +53,15 @@ const handleMulterError = (err, req, res, next) => {
     return res.status(400).json({ error: err.message });
   }
   next();
+};
+
+// Admin middleware
+const requireAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ error: 'Not authorized. Admin access required.' });
+  }
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -179,6 +189,90 @@ router.get('/download/:id', protect, async (req, res) => {
   } catch (err) {
     console.error('Error downloading project:', err);
     res.status(500).json({ error: 'Failed to download project' });
+  }
+});
+
+// Get all projects (admin only)
+router.get('/all', protect, requireAdmin, async (req, res) => {
+  try {
+    const projects = await Project.find()
+      .populate('owner', 'name email')
+      .sort({ createdAt: -1 });
+    return res.json(projects);
+  } catch (err) {
+    console.error('Error fetching all projects:', err);
+    return res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
+
+// Get project details with feedback
+router.get('/details/:id', protect, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id)
+      .populate('owner', 'name email');
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Check if user is admin or project owner
+    if (req.user.role !== 'admin' && project.owner._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized to view this project' });
+    }
+
+    const feedback = await Feedback.find({ project: project._id })
+      .populate('user', 'name role')
+      .sort({ createdAt: -1 });
+
+    return res.json({ project, feedback });
+  } catch (err) {
+    console.error('Error fetching project details:', err);
+    return res.status(500).json({ error: 'Failed to fetch project details' });
+  }
+});
+
+// Review project (admin only)
+router.post('/review/:id', protect, requireAdmin, async (req, res) => {
+  try {
+    const { feedback, status, rating } = req.body;
+    const projectId = req.params.id;
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Update project status
+    project.status = status;
+    project.adminFeedback = feedback;
+    project.lastReviewedAt = new Date();
+    project.lastReviewedBy = req.user._id;
+
+    // Update average rating if rating is provided
+    if (rating) {
+      const newRatingCount = project.ratingCount + 1;
+      const newAverageRating = ((project.averageRating * project.ratingCount) + rating) / newRatingCount;
+      project.ratingCount = newRatingCount;
+      project.averageRating = newAverageRating;
+    }
+
+    await project.save();
+
+    // Create feedback entry
+    const newFeedback = new Feedback({
+      project: projectId,
+      user: req.user._id,
+      content: feedback,
+      rating: rating,
+      isAdminFeedback: true
+    });
+
+    await newFeedback.save();
+
+    return res.json({ project, feedback: newFeedback });
+  } catch (err) {
+    console.error('Error reviewing project:', err);
+    return res.status(500).json({ error: 'Failed to review project' });
   }
 });
 

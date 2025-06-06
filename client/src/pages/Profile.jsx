@@ -20,7 +20,7 @@ export default function Profile() {
 
   const fetchProjects = async () => {
     try {
-      const response = await axios.get('/api/projects/my-projects');
+      const response = await axios.get('/projects/my-projects');
       setProjects(response.data);
     } catch (error) {
       console.error(error);

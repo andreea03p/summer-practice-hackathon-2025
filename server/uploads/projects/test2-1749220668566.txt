@@ -1,0 +1,4 @@
+a = ["apple", "banana", "kiwi", "cherry"]
+
+a.sort(key=len)
+print(a)

@@ -106,6 +106,8 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  justify-content: center;
+  justify-items: center;
 }
 
 .projects-section {
@@ -115,10 +117,14 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  /* remove width: 100%; */
+  max-width: 600px;    /* ← set a max width */
   width: 100%;
+  margin: 0 auto;      /* ← center it */
   box-sizing: border-box;
   max-height: calc(100vh - 200px);
   overflow-y: auto;
+  justify-content: center;
 }
 
 .projects-header {
