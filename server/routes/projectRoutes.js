@@ -3,40 +3,56 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const Project = require('../models/projectModel');
 // Import the “protect” function from authMiddleware
 const { protect } = require('../middleware/authMiddleware');
 
-// 1) Configure multer so we can upload .txt files
-//    – store them under ./uploads/projects/ with the original filename + timestamp.
+// Configure multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // Make sure this folder exists: <project_root>/uploads/projects
-    cb(null, path.join(__dirname, '..', 'uploads', 'projects'));
+    const uploadDir = path.join(__dirname, '..', 'uploads', 'projects');
+    // Ensure directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // e.g. myfile-1624928349283.txt
     const timestamp = Date.now();
-    const ext = path.extname(file.originalname); // “.txt”
-    const base = path.basename(file.originalname, ext).replace(/\s+/g, '-');
+    const ext = path.extname(file.originalname);
+    const base = path.basename(file.originalname, ext).replace(/[^a-z0-9]/gi, '-').toLowerCase();
     cb(null, `${base}-${timestamp}${ext}`);
   }
 });
 
-// Only accept plain‐text files (text/plain).
+// File filter
 const fileFilter = (req, file, cb) => {
+  console.log('Received file:', file.originalname, 'MIME type:', file.mimetype);
   if (file.mimetype === 'text/plain') {
     cb(null, true);
   } else {
-    cb(new Error('Only .txt files are allowed'), false);
+    cb(new Error('Only .txt files are allowed. Received: ' + file.mimetype), false);
   }
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // up to 10 MB
+  limits: { fileSize: 10 * 1024 * 1024 } // 10 MB
 });
+
+// Error handling for multer
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error('Multer error:', err);
+    return res.status(400).json({ error: `Upload error: ${err.message}` });
+  } else if (err) {
+    console.error('File upload error:', err);
+    return res.status(400).json({ error: err.message });
+  }
+  next();
+};
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 2) GET /my-projects → return all projects belonging to req.user
@@ -47,12 +63,11 @@ router.get(
   async (req, res) => {
     try {
       // req.user was set by protect (decoded from JWT)
-      const ownerId = req.user._id;
-      const projects = await Project.find({ owner: ownerId })
+      const projects = await Project.find({ owner: req.user._id })
         .sort({ createdAt: -1 });
       return res.json(projects);
     } catch (err) {
-      console.error('Error fetching my-projects:', err);
+      console.error('Error fetching projects:', err);
       return res.status(500).json({ error: 'Failed to fetch projects' });
     }
   }
@@ -64,30 +79,42 @@ router.get(
 router.post(
   '/submit',
   protect,
+  (req, res, next) => {
+    console.log('Received project submission request');
+    console.log('Auth user:', req.user);
+    console.log('Request body:', req.body);
+    next();
+  },
   upload.single('projectFile'),
+  handleMulterError,
   async (req, res) => {
     try {
+      console.log('Processing project submission');
+      console.log('File:', req.file);
+      console.log('Body:', req.body);
+
       const { title, description } = req.body;
       if (!title || !description) {
         return res.status(400).json({ error: 'Title and description are required' });
       }
       if (!req.file) {
-        // multer would have rejected non‐.txt, but just in case:
         return res.status(400).json({ error: 'Project .txt file is required' });
       }
 
       const newProject = new Project({
         title,
         description,
-        projectFile: req.file.filename, // e.g. “notes-1624928349283.txt”
+        projectFile: req.file.filename,
         owner: req.user._id,
+        status: 'pending'
       });
 
       await newProject.save();
+      console.log('Project saved successfully:', newProject);
       return res.status(201).json(newProject);
     } catch (err) {
-      console.error('Error submitting project:', err);
-      return res.status(500).json({ error: 'Failed to submit project' });
+      console.error('Error in project submission:', err);
+      return res.status(500).json({ error: 'Failed to submit project: ' + err.message });
     }
   }
 );
@@ -131,5 +158,28 @@ router.post(
     }
   }
 );
+
+// Download project file
+router.get('/download/:id', protect, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    if (project.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not authorized to download this project' });
+    }
+
+    const filePath = path.join(__dirname, '..', 'uploads', 'projects', project.projectFile);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Project file not found' });
+    }
+
+    res.download(filePath);
+  } catch (err) {
+    console.error('Error downloading project:', err);
+    res.status(500).json({ error: 'Failed to download project' });
+  }
+});
 
 module.exports = router;

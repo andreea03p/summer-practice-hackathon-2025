@@ -7,20 +7,21 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 
 const Navbar = () => {
-  const { user, setAuth } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      await axios.post('/api/auth/logout', {}, { withCredentials: true });
-      setAuth(null);
+      await axios.post('/logout', {}, { withCredentials: true });
+      logout(); // Clear client-side auth state
+      navigate('/login');
       toast.success('Logged out successfully');
-      navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
-      setAuth(null);
+      // Even if the server request fails, clear local state
+      logout();
+      navigate('/login');
       toast.error('Error during logout, but you have been logged out locally');
-      navigate('/');
     }
   };
 
@@ -47,8 +48,8 @@ const Navbar = () => {
             <Link to="/my-projects" className="nav-link">
               My Projects
             </Link>
-            <Link to="/profile" className="nav-link">
-              Profile
+            <Link to="/submit-project" className="nav-link">
+              Submit Project
             </Link>
           </>
         )}

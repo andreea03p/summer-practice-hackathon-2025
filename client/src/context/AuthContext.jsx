@@ -1,24 +1,33 @@
-import { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import axios from 'axios';
+
+axios.defaults.baseURL = 'http://localhost:5050';
+axios.defaults.withCredentials = true;
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const setAuth = (userData) => {
-    setUser(userData);
-  };
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  });
 
   const login = (userData) => {
     setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+    // Clear any axios default headers
+    delete axios.defaults.headers.common['Authorization'];
   };
 
   const value = {
     user,
-    setAuth,
-    loading,
-    login
+    login,
+    logout
   };
 
   return (

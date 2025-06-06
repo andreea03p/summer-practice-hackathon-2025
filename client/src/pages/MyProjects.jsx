@@ -8,12 +8,7 @@ import './MyProjects.css';
 export default function MyProjects() {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    projectFile: null
-  });
+  const [reviewHistory, setReviewHistory] = useState([]);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -30,89 +25,19 @@ export default function MyProjects() {
       const response = await axios.get('/api/projects/my-projects');
       setProjects(response.data);
     } catch (error) {
-      console.error(error);
+      console.error('Error fetching projects:', error);
       toast.error('Error fetching projects');
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type === 'application/zip') {
-      setFormData({ ...formData, projectFile: file });
-    } else {
-      toast.error('Please upload a ZIP file');
-      e.target.value = null;
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.projectFile) {
-      toast.error('Please select a project file');
-      return;
-    }
-
-    setIsSubmitting(true);
-    const formDataToSend = new FormData();
-    formDataToSend.append('title', formData.title);
-    formDataToSend.append('description', formData.description);
-    formDataToSend.append('projectFile', formData.projectFile);
-
+  const handleProjectClick = async (projectId) => {
     try {
-      await axios.post('/api/projects/submit', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      toast.success('Project submitted successfully');
-      setFormData({
-        title: '',
-        description: '',
-        projectFile: null
-      });
-      fetchProjects();
+      const response = await axios.get(`/api/projects/details/${projectId}`);
+      setSelectedProject(response.data.project);
+      setReviewHistory(response.data.feedback || []);
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.error || 'Error submitting project');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    if (!selectedProject || !formData.projectFile) {
-      toast.error('Please select a project file');
-      return;
-    }
-
-    setIsSubmitting(true);
-    const formDataToSend = new FormData();
-    formDataToSend.append('title', formData.title || selectedProject.title);
-    formDataToSend.append('description', formData.description || selectedProject.description);
-    formDataToSend.append('projectFile', formData.projectFile);
-
-    try {
-      await axios.post(`/api/projects/update/${selectedProject._id}`, formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      toast.success('Project updated successfully');
-      setFormData({
-        title: '',
-        description: '',
-        projectFile: null
-      });
-      setSelectedProject(null);
-      fetchProjects();
-    } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.error || 'Error updating project');
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error fetching project details:', error);
+      toast.error('Error fetching project details');
     }
   };
 
@@ -132,13 +57,13 @@ export default function MyProjects() {
   return (
     <div className="my-projects">
       <div className="projects-section">
-        <h2>My Projects</h2>
+        <h2>My Submitted Projects</h2>
         <div className="projects-grid">
           {projects.map((project) => (
-            <div
-              key={project._id}
+            <div 
+              key={project._id} 
               className={`project-card ${selectedProject?._id === project._id ? 'selected' : ''}`}
-              onClick={() => setSelectedProject(project)}
+              onClick={() => handleProjectClick(project._id)}
             >
               <h3>{project.title}</h3>
               <p className="project-description">{project.description}</p>
@@ -153,78 +78,80 @@ export default function MyProjects() {
               {project.version > 1 && (
                 <p className="project-version">Version: {project.version}</p>
               )}
-              {project.adminFeedback && (
-                <div className="admin-feedback">
-                  <h4>Admin Feedback:</h4>
-                  <p>{project.adminFeedback}</p>
-                </div>
-              )}
+              <div className="project-actions">
+                <a
+                  href={`/api/projects/download/${project._id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="download-btn"
+                >
+                  Download Project
+                </a>
+                {project.status === 'pending' && (
+                  <button
+                    className="update-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/submit-project?update=${project._id}`);
+                    }}
+                  >
+                    Update Project
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="project-form-section">
-        <h2>{selectedProject ? 'Update Project' : 'Submit New Project'}</h2>
-        <form onSubmit={selectedProject ? handleUpdate : handleSubmit}>
-          <div className="form-group">
-            <label>Title:</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder={selectedProject ? selectedProject.title : 'Enter project title'}
-              required={!selectedProject}
-            />
-          </div>
+      {selectedProject && (
+        <div className="project-details-modal">
+          <div className="modal-content">
+            <h2>{selectedProject.title}</h2>
+            <p className="project-description">{selectedProject.description}</p>
+            
+            <div className="project-status">
+              <span className={`status-badge ${getStatusBadgeClass(selectedProject.status)}`}>
+                {selectedProject.status}
+              </span>
+              <span className="project-date">
+                Submitted: {new Date(selectedProject.createdAt).toLocaleDateString()}
+              </span>
+            </div>
 
-          <div className="form-group">
-            <label>Description:</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder={selectedProject ? selectedProject.description : 'Enter project description'}
-              required={!selectedProject}
-              rows="4"
-            />
-          </div>
+            {reviewHistory.length > 0 && (
+              <div className="review-history">
+                <h3>Review History</h3>
+                <div className="review-list">
+                  {reviewHistory.map((review, index) => (
+                    <div key={index} className="review-item">
+                      <div className="review-header">
+                        <span className="reviewer">
+                          {review.isAdminFeedback ? 'Admin' : review.user?.name}
+                        </span>
+                        <span className="review-date">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="review-content">{review.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          <div className="form-group">
-            <label>Project File (ZIP):</label>
-            <input
-              type="file"
-              accept=".zip"
-              onChange={handleFileChange}
-              required={!selectedProject}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="submit-btn"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Submitting...' : (selectedProject ? 'Update Project' : 'Submit Project')}
-          </button>
-
-          {selectedProject && (
-            <button
-              type="button"
-              className="cancel-btn"
+            <button 
+              className="close-modal-btn"
               onClick={() => {
                 setSelectedProject(null);
-                setFormData({
-                  title: '',
-                  description: '',
-                  projectFile: null
-                });
+                setReviewHistory([]);
               }}
             >
-              Cancel
+              Close
             </button>
-          )}
-        </form>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

@@ -1,24 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const cors = require('cors');
-
 const {
   registerUser,
   loginUser,
   resetPassword,
+  logoutUser
 } = require('../controllers/authController');
 
-router.use(
-  cors({
-    origin: 'http://localhost:5173',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
-
+// Auth routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/reset-pass', resetPassword);
+router.post('/logout', logoutUser);
 
 module.exports = router;

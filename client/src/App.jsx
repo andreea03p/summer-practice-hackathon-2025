@@ -13,6 +13,7 @@ import ResetPassword from './pages/ResetPassword.jsx';
 import { useAuth } from './context/AuthContext.jsx';
 import { Toaster } from 'react-hot-toast';
 import axios from 'axios';
+import SubmitProject from './pages/SubmitProject';
 
 axios.defaults.baseURL = 'http://localhost:5050';
 axios.defaults.withCredentials = true;
@@ -52,6 +53,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/submit-project"
+          element={
+            <ProtectedRoute>
+              <SubmitProject />
             </ProtectedRoute>
           }
         />

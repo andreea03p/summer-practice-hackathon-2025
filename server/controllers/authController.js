@@ -159,9 +159,26 @@ const registerUser = async (req, res) => {
   }
 };
 
+const logoutUser = async (req, res) => {
+  try {
+    // Clear the auth cookie
+    res.clearCookie('token', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production'
+    });
+    
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Error during logout' });
+  }
+};
+
 module.exports = {
   test,
   registerUser,
   loginUser,
   resetPassword,
+  logoutUser
 };

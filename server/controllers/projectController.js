@@ -80,7 +80,7 @@ const getAllProjects = async (req, res) => {
   }
 };
 
-// Get logged-in user’s projects
+// Get logged-in user's projects
 const getUserProjects = async (req, res) => {
   try {
     const userId = req.user.id;
