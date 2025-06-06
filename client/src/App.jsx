@@ -10,7 +10,7 @@ import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
 import MyProjects from './pages/MyProjects';
 import ResetPassword from './pages/ResetPassword.jsx';
-import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { useAuth } from './context/AuthContext.jsx';
 import { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 
@@ -78,11 +78,7 @@ function AppContent() {
 }
 
 function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
+  return <AppContent />;
 }
 
 export default App;

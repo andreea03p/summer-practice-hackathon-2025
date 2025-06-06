@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 
 const authRoutes = require('./routes/authRoutes');
 const User = require('./models/userModel');
+const projectRoutes = require('./routes/projectRoutes');
 
 const app = express();
 
@@ -54,6 +55,8 @@ app.get('/profile', async (req, res) => {
 });
 
 app.use('/', authRoutes);
+
+app.use('/projects', projectRoutes);
 
 const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => {

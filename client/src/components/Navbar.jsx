@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaHome, FaSearch, FaMapMarkedAlt, FaBell, FaUser, FaSignOutAlt, FaStar } from 'react-icons/fa';
-import { useAuth } from '../../context/AuthContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import './Navbar.css';
 import toast from 'react-hot-toast';
 import axios from 'axios';
@@ -12,13 +12,15 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/api/auth/logout');
+      await axios.post('/api/auth/logout', {}, { withCredentials: true });
       setAuth(null);
       toast.success('Logged out successfully');
-      navigate('/login');
+      navigate('/');
     } catch (error) {
-      console.error(error);
-      toast.error('Error logging out');
+      console.error('Logout error:', error);
+      setAuth(null);
+      toast.error('Error during logout, but you have been logged out locally');
+      navigate('/');
     }
   };
 
