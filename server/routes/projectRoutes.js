@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const Project = require('../models/projectModel');
 const Feedback = require('../models/feedbackModel');
-// Import the “protect” function from authMiddleware
+// Import the "protect" function from authMiddleware
 const { protect } = require('../middleware/authMiddleware');
 
 // Configure multer storage
@@ -66,7 +66,7 @@ const requireAdmin = (req, res, next) => {
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 2) GET /my-projects → return all projects belonging to req.user
-//    (protected by “protect”)
+//    (protected by "protect")
 router.get(
   '/my-projects',
   protect,
@@ -85,7 +85,7 @@ router.get(
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 3) POST /submit → create a new project document, save the file via multer
-//    (protected by “protect”)
+//    (protected by "protect")
 router.post(
   '/submit',
   protect,
@@ -131,7 +131,7 @@ router.post(
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 4) POST /update/:id → update an existing project by ID, bump version, save new .txt.
-//    (protected by “protect” — only the owner can update)
+//    (protected by "protect" — only the owner can update)
 router.post(
   '/update/:id',
   protect,
@@ -234,17 +234,38 @@ router.get('/details/:id', protect, async (req, res) => {
 // Review project (admin only)
 router.post('/review/:id', protect, requireAdmin, async (req, res) => {
   try {
+    console.log('Review request received:', {
+      projectId: req.params.id,
+      body: req.body,
+      user: req.user._id
+    });
+
     const { feedback, status, rating } = req.body;
     const projectId = req.params.id;
 
+    // Validate status
+    if (!status || !['pending', 'approved', 'rejected', 'updated'].includes(status)) {
+      console.log('Invalid status:', status);
+      return res.status(400).json({ 
+        error: 'Invalid status. Must be one of: pending, approved, rejected, updated' 
+      });
+    }
+
     const project = await Project.findById(projectId);
     if (!project) {
+      console.log('Project not found:', projectId);
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // Update project status
+    console.log('Found project:', {
+      id: project._id,
+      title: project.title,
+      currentStatus: project.status
+    });
+
+    // Update project status and feedback
     project.status = status;
-    project.adminFeedback = feedback;
+    project.adminFeedback = feedback || '';
     project.lastReviewedAt = new Date();
     project.lastReviewedBy = req.user._id;
 
@@ -254,25 +275,54 @@ router.post('/review/:id', protect, requireAdmin, async (req, res) => {
       const newAverageRating = ((project.averageRating * project.ratingCount) + rating) / newRatingCount;
       project.ratingCount = newRatingCount;
       project.averageRating = newAverageRating;
+      console.log('Updated rating:', { newRatingCount, newAverageRating });
     }
 
-    await project.save();
+    // Save the updated project
+    const updatedProject = await project.save();
+    console.log('Project updated:', {
+      id: updatedProject._id,
+      newStatus: updatedProject.status,
+      newRating: updatedProject.averageRating
+    });
 
     // Create feedback entry
     const newFeedback = new Feedback({
       project: projectId,
       user: req.user._id,
-      content: feedback,
+      content: feedback || '',
       rating: rating,
       isAdminFeedback: true
     });
 
-    await newFeedback.save();
+    console.log('Creating new feedback:', {
+      projectId,
+      userId: req.user._id,
+      hasContent: !!feedback,
+      hasRating: !!rating
+    });
 
-    return res.json({ project, feedback: newFeedback });
+    const savedFeedback = await newFeedback.save();
+    console.log('Feedback saved successfully:', {
+      id: savedFeedback._id,
+      projectId: savedFeedback.project,
+      userId: savedFeedback.user
+    });
+
+    // Return the updated project with populated fields
+    const populatedProject = await Project.findById(projectId)
+      .populate('owner', 'name email')
+      .populate('lastReviewedBy', 'name');
+
+    return res.json({ 
+      project: populatedProject, 
+      feedback: savedFeedback 
+    });
   } catch (err) {
-    console.error('Error reviewing project:', err);
-    return res.status(500).json({ error: 'Failed to review project' });
+    console.error('Error in review route:', err);
+    return res.status(500).json({ 
+      error: 'Failed to review project: ' + (err.message || 'Unknown error') 
+    });
   }
 });
 

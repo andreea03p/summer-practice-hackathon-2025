@@ -14,6 +14,14 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Stats for the dashboard
+  const stats = {
+    total: projects.length,
+    pending: projects.filter(p => p.status === 'pending').length,
+    approved: projects.filter(p => p.status === 'approved').length,
+    rejected: projects.filter(p => p.status === 'rejected').length
+  };
+
   useEffect(() => {
     if (!user || user.role !== 'admin') {
       navigate('/');
@@ -54,23 +62,42 @@ const AdminDashboard = () => {
     if (!selectedProject) return;
 
     try {
+      setError(null);
+      
+      // Validate status
+      if (!status || !['pending', 'approved', 'rejected', 'updated'].includes(status)) {
+        setError('Invalid status selected');
+        return;
+      }
+
+      // Validate rating if provided
+      if (rating && (rating < 1 || rating > 5)) {
+        setError('Rating must be between 1 and 5');
+        return;
+      }
+
       const response = await axios.post(`/projects/review/${selectedProject._id}`, {
         feedback,
         status,
         rating: rating || undefined
       });
 
-      // Update the projects list with the reviewed project
-      setProjects(projects.map(p => 
-        p._id === selectedProject._id ? response.data.project : p
-      ));
+      if (response.data.error) {
+        setError(response.data.error);
+        return;
+      }
 
-      // Update the selected project
+      // Refresh the entire project list to ensure we have the latest data
+      await fetchProjects();
+
+      // Update the selected project with the response data
       setSelectedProject(response.data.project);
-      setError(null);
+      
+      // Show success message
+      alert('Project reviewed successfully!');
     } catch (err) {
       console.error('Error submitting review:', err);
-      setError('Failed to submit review. Please try again.');
+      setError(err.response?.data?.error || 'Failed to submit review. Please try again.');
     }
   };
 
@@ -90,6 +117,32 @@ const AdminDashboard = () => {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
       
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-lg font-semibold text-gray-600">Total Projects</h3>
+          <p className="text-2xl font-bold">{stats.total}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-lg font-semibold text-yellow-600">Pending</h3>
+          <p className="text-2xl font-bold">{stats.pending}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-lg font-semibold text-green-600">Approved</h3>
+          <p className="text-2xl font-bold">{stats.approved}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-lg font-semibold text-red-600">Rejected</h3>
+          <p className="text-2xl font-bold">{stats.rejected}</p>
+        </div>
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Projects List */}
         <div className="bg-white rounded-lg shadow p-6">
@@ -98,10 +151,10 @@ const AdminDashboard = () => {
             {projects.map(project => (
               <div
                 key={project._id}
-                className={`p-4 rounded cursor-pointer transition-colors ${
+                className={`p-4 rounded cursor-pointer transition-colors border ${
                   selectedProject?._id === project._id
                     ? 'bg-blue-100 border-blue-500'
-                    : 'bg-gray-50 hover:bg-gray-100'
+                    : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
                 }`}
                 onClick={() => handleProjectSelect(project._id)}
               >
@@ -111,12 +164,24 @@ const AdminDashboard = () => {
                   Status: <span className={`font-medium ${
                     project.status === 'approved' ? 'text-green-600' :
                     project.status === 'rejected' ? 'text-red-600' :
+                    project.status === 'updated' ? 'text-blue-600' :
                     'text-yellow-600'
                   }`}>{project.status}</span>
                 </p>
                 <p className="text-sm text-gray-600">
                   Submitted: {new Date(project.createdAt).toLocaleDateString()}
                 </p>
+                {project.lastReviewedAt && (
+                  <p className="text-sm text-gray-600">
+                    Last reviewed: {new Date(project.lastReviewedAt).toLocaleDateString()}
+                    {project.lastReviewedBy && ` by ${project.lastReviewedBy.name}`}
+                  </p>
+                )}
+                {project.averageRating > 0 && (
+                  <p className="text-sm text-gray-600">
+                    Rating: {project.averageRating.toFixed(1)}/5 ({project.ratingCount} reviews)
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -143,10 +208,13 @@ const AdminDashboard = () => {
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
                 >
+                  <option value="">Select a status</option>
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
+                  <option value="updated">Updated</option>
                 </select>
               </div>
 

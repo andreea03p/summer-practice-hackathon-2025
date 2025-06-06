@@ -11,6 +11,7 @@ const fs = require('fs');
 const authRoutes = require('./routes/authRoutes');
 const User = require('./models/userModel');
 const projectRoutes = require('./routes/projectRoutes');
+const Feedback = require('./models/feedbackModel');
 
 const app = express();
 
@@ -28,13 +29,33 @@ if (!fs.existsSync(uploadsDir)) {
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// MongoDB connection with detailed logging
 mongoose
   .connect(process.env.MONGO_URL, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+  .then(async () => {
+    console.log('MongoDB connected successfully');
+    // Log the database name
+    console.log('Connected to database:', mongoose.connection.db.databaseName);
+    
+    // Check if feedbacks collection exists
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    const feedbacksExists = collections.some(col => col.name === 'feedbacks');
+    console.log('Feedbacks collection exists:', feedbacksExists);
+    
+    // Count existing feedbacks
+    const feedbackCount = await Feedback.countDocuments();
+    console.log('Number of feedbacks in database:', feedbackCount);
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
+
+// Log all database operations
+mongoose.set('debug', true);
 
 app.use(
   cors({
