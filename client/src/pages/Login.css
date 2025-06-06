@@ -1,0 +1,113 @@
+/* Ensure full height for the entire page */
+html, body, #root {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* Full-screen background container */
+  .login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100vw;
+    /* Replace with your preferred background image or color */
+    background: url('../assets/bckg1.jpg') no-repeat center center;
+    background-size: cover;
+    background-color: #f2f2f2;
+  }
+  
+  /* Main login container styles */
+  .login-container {
+    max-width: 400px;
+    width: 90%;
+    padding: 2rem;
+    background-color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Header styling */
+  .login-container h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #333;
+  }
+  
+  /* Form layout */
+  .login-container form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Labels */
+  .login-container label {
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #555;
+  }
+  
+  /* Input fields */
+  .login-container input[type="email"],
+  .login-container input[type="password"] {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  
+  .login-container input:focus {
+    outline: none;
+    border-color: #3f51b5;
+  }
+  
+  /* Login button styling */
+  .login-btn {
+    padding: 0.75rem;
+    background-color: #3f51b5;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .login-btn:hover {
+    background-color: #303f9f;
+  }
+  
+  /* Footer container for extra buttons */
+  .login-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+  }
+  
+  /* Footer buttons (Sign Up & Reset Password) */
+  .footer-btn {
+    background-color: transparent;
+    border: none;
+    color: #3f51b5;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    transition: color 0.3s ease;
+  }
+  
+  .footer-btn:hover {
+    color: #303f9f;
+  }
+  
+  /* Responsive adjustments for small screens */
+  @media (max-width: 480px) {
+    .login-container {
+      padding: 1rem;
+    }
+  }
+  

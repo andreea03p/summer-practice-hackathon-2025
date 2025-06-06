@@ -1,0 +1,113 @@
+/* Ensure the whole page fills the viewport */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Full-screen background container */
+.register-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100vw;
+  /* Use a background image if desired, or a gradient/color */
+  background: url('../assets/bckg1.jpg') no-repeat center center;
+  background-size: cover;
+  /* Fallback background color */
+  background-color: #100202;
+}
+
+/* Centered registration container */
+.register-container {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  width: 90%;
+  font-family: 'Arial', sans-serif;
+}
+
+.register-container h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.register-container form {
+  display: flex;
+  flex-direction: column;
+}
+
+.register-container label {
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: #555;
+}
+
+.register-container input[type="text"],
+.register-container input[type="email"],
+.register-container input[type="password"] {
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.register-container input[type="text"]:focus,
+.register-container input[type="email"]:focus,
+.register-container input[type="password"]:focus {
+  outline: none;
+  border-color: #3f51b5;
+}
+
+.register-container button[type="submit"] {
+  padding: 0.75rem;
+  background-color: #3f51b5;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.register-container button[type="submit"]:hover {
+  background-color: #303f9f;
+}
+
+/* Footer container for extra buttons */
+.register-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+/* Footer buttons (Login) */
+.footer-btn {
+  background: none;
+  color: #3f51b5;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+  border: none;
+  padding: 0;
+  text-align: center;
+}
+
+.footer-btn:hover {
+  color: #303f9f;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 480px) {
+  .register-container {
+    padding: 1rem;
+  }
+}
