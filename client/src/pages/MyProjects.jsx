@@ -22,7 +22,7 @@ export default function MyProjects() {
 
   const fetchProjects = async () => {
     try {
-      const response = await axios.get('/api/projects/my-projects');
+      const response = await axios.get('/projects/my-projects');
       setProjects(response.data);
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -32,7 +32,7 @@ export default function MyProjects() {
 
   const handleProjectClick = async (projectId) => {
     try {
-      const response = await axios.get(`/api/projects/details/${projectId}`);
+      const response = await axios.get(`/projects/details/${projectId}`);
       setSelectedProject(response.data.project);
       setReviewHistory(response.data.feedback || []);
     } catch (error) {
@@ -80,7 +80,7 @@ export default function MyProjects() {
               )}
               <div className="project-actions">
                 <a
-                  href={`/api/projects/download/${project._id}`}
+                  href={`/projects/download/${project._id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="download-btn"

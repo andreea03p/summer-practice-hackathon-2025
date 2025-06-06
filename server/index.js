@@ -14,6 +14,10 @@ const projectRoutes = require('./routes/projectRoutes');
 
 const app = express();
 
+// Middleware
+app.use(express.json());
+app.use(cookieParser());
+
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, 'uploads', 'projects');
 if (!fs.existsSync(uploadsDir)) {
@@ -31,10 +35,6 @@ mongoose
   })
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('MongoDB connection error:', err));
-
-app.use(express.json());
-
-app.use(cookieParser());
 
 app.use(
   cors({

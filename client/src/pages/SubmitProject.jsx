@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './SubmitProject.css';
 
 export default function SubmitProject() {
@@ -16,17 +17,24 @@ export default function SubmitProject() {
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const updateProjectId = new URLSearchParams(location.search).get('update');
 
   useEffect(() => {
+    // Check if user is authenticated
+    if (!user) {
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+
     if (updateProjectId) {
       fetchProjectDetails(updateProjectId);
     }
-  }, [updateProjectId]);
+  }, [user, updateProjectId, navigate, location]);
 
   const fetchProjectDetails = async (projectId) => {
     try {
-      const response = await axios.get(`/api/projects/details/${projectId}`);
+      const response = await axios.get(`/projects/details/${projectId}`);
       const project = response.data.project;
       setFormData({
         title: project.title,
@@ -95,6 +103,13 @@ export default function SubmitProject() {
     e.preventDefault();
     if (!validateForm()) return;
 
+    // Double check authentication before submitting
+    if (!user) {
+      toast.error('Please log in to submit a project');
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+
     setIsSubmitting(true);
     const formDataToSend = new FormData();
     formDataToSend.append('title', formData.title.trim());
@@ -105,8 +120,8 @@ export default function SubmitProject() {
 
     try {
       const endpoint = updateProjectId 
-        ? `/api/projects/update/${updateProjectId}`
-        : '/api/projects/submit';
+        ? `/projects/update/${updateProjectId}`
+        : '/projects/submit';
       
       const response = await axios.post(endpoint, formDataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -117,8 +132,8 @@ export default function SubmitProject() {
     } catch (error) {
       console.error('Submission error:', error);
       if (error.response?.status === 401) {
-        toast.error('Please log in again to submit a project');
-        navigate('/login');
+        toast.error('Your session has expired. Please log in again.');
+        navigate('/login', { state: { from: location.pathname } });
       } else if (error.response?.data?.error) {
         toast.error(error.response.data.error);
       } else {

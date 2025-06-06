@@ -10,30 +10,33 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // If user is not logged in, don't render the navbar
+  if (!user) {
+    return null;
+  }
+
   const handleLogout = async () => {
     try {
       await axios.post('/logout', {}, { withCredentials: true });
-      logout(); // Clear client-side auth state
+      logout(); 
       navigate('/login');
       toast.success('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if the server request fails, clear local state
       logout();
       navigate('/login');
-      toast.error('Error during logout, but you have been logged out locally');
+      toast.error('Error during logout!');
     }
   };
 
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <Link to="/">Project Review System</Link>
+        <Link to="/">Project Review App</Link>
       </div>
 
       <div className="navbar-menu">
         {user?.role === 'admin' ? (
-          // Admin navigation
           <>
             <Link to="/admin/dashboard" className="nav-link">
               Dashboard
@@ -43,7 +46,6 @@ const Navbar = () => {
             </Link>
           </>
         ) : (
-          // Regular user navigation
           <>
             <Link to="/my-projects" className="nav-link">
               My Projects
